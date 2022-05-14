@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block css %}
+<style>
+  h1 {
+    text-align: center;
+  }
+  td > a {
+    text-decoration: none;
+    color: #000000;
+  }
+</style>
+{% endblock css %}
+
+{% block content %}
+  <h2 class="text-center mb-4">익명 게시판</h2>
+  <div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col-2">번호</th>
+          <th scope="col-4">제목</th>
+          <th scope="col-4">작성일</th>
+          <th scope="col-2">조회수</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <th scope="row">{{ article.pk }}</th>
+            <td>
+              <a href="{% url 'anonymouses:article_detail' article.pk %}">{{ article.title }}</a></td>
+            <td>{{ article.created_at }}</td>
+            <td>{{ article.view_cnt }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href="{% url 'anonymouses:article_create' %}">
+      <button class="btn btn-dark">새 글</button>
+    </a>    
+  </div>
+{% endblock content %}

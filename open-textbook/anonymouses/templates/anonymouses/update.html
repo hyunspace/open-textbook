@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section>
+    <form action="{% url 'anonymouses:article_update' article.pk %}" method="POST">
+      {% csrf_token %}
+      <div class="mb-3">
+        <p>{{ article_form.title }}</p>
+        {{ article_form.media }}
+        <p>{{ article_form.content | safe }}</p>
+      </div>
+      <input type="submit" value="수정" class="btn btn-dark">
+    </form>
+  </section>
+{% endblock content %}

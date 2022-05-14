@@ -1,3 +1,4 @@
+from ckeditor.fields import RichTextField
 from django.db import models
 from django.conf import settings
 from datetime import datetime, timedelta, timezone
@@ -8,7 +9,7 @@ class Anonymous(models.Model):
     like_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_anonymouses')
     title = models.CharField(max_length=20)
     view_cnt = models.IntegerField(default=0)
-    content = models.TextField()
+    content = RichTextField(blank=True , null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
