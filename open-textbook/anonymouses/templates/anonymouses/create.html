@@ -1,20 +1,31 @@
-{% extends 'base.html' %}
+{% extends 'anonymous_base.html' %}
 
-{% block content %}
-<header>
-  <h2>새 글 작성</h2>
-</header>
-<section>
-  <form action="{% url 'anonymouses:article_create' %}" method="POST">
-    {% csrf_token %}
-    <div class="mb-3">
-      <p>{{ article_form.title }}</p>
-      {{ article_form.media }}
-      <p>{{ article_form.content | safe }}</p>
-    </div>
-    <input type="submit" value="등록" class="btn btn-dark">
-    <hr>
-  </form>
-  <a href="{% url 'anonymouses:index' %}"><button class="btn btn-dark">뒤로 가기</button></a>
-</section>
-{% endblock content %}
+{% block subtitle %}
+  익명게시판
+{% endblock subtitle %}
+
+{% block detail %}
+<form action="" method="POST">
+  {% csrf_token %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col"><p class="fs-5 fw-bold my-1">새 글 생성</p></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th> {{ article_form.title }}  </th>
+      </tr>
+      <tr>        
+        <th>{{ article_form.media }}
+          {{ article_form.content | safe }}</th>
+      </tr>
+    </tbody>
+  </table>
+  <div "float-right py-3">
+    <button type='submit' class='btn btn-dark'>생성</button>
+    <button type='reset' class='btn text-decoration-underline'>취소</button>
+  </div>
+</form>
+{% endblock detail %}

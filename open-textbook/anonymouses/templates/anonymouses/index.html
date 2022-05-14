@@ -1,43 +1,89 @@
-{% extends 'base.html' %}
+{% extends 'anonymous_base.html' %}
 
-{% block css %}
-<style>
-  h1 {
-    text-align: center;
-  }
-  td > a {
-    text-decoration: none;
-    color: #000000;
-  }
-</style>
-{% endblock css %}
+{% block subtitle %}
+  익명게시판
+{% endblock subtitle %}
 
-{% block content %}
-  <h2 class="text-center mb-4">익명 게시판</h2>
-  <div>
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col-2">번호</th>
-          <th scope="col-4">제목</th>
-          <th scope="col-4">작성일</th>
-          <th scope="col-2">조회수</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for article in articles %}
-          <tr>
-            <th scope="row">{{ article.pk }}</th>
-            <td>
-              <a href="{% url 'anonymouses:article_detail' article.pk %}">{{ article.title }}</a></td>
-            <td>{{ article.created_at }}</td>
-            <td>{{ article.view_cnt }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <a href="{% url 'anonymouses:article_create' %}">
-      <button class="btn btn-dark">새 글</button>
-    </a>    
+{% block detail %}
+<table class="table my-1">
+  <thead>
+    <tr class="fs-5 text-center">
+      <th scope="col" class="col-2">번호</th>
+      <th scope="col" class="col-5">제목</th>
+      <th scope="col" class="col-2">작성자</th>
+      <th scope="col" class="col-2">등록일</th>
+      <th scope="col" class="col-1">조회</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for anonymous in anonymouses %}
+      <tr class="current">
+        <th scope="row" class="text-center">{{ anonymous.pk }}</th>
+        <td>
+          <a href="{% url 'anonymouses:article_detail' anonymous.pk%}" class="text-decoration-none text-black">
+            {{ anonymous.title }} 
+            {% if anonymous.comment_set %}
+            <span style='font-size:12px;'>[{{ anonymous.comment_set.all|length }}]</span>
+            {% endif %} 
+          </a>
+        </td>
+        <td class="text-center">익명</td>
+        <td class="text-center">{{ anonymous.created_string }}</td>
+        <td class="text-center">{{ anonymous.view_cnt }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<br>
+<div class="d-flex justify-content-between align-items center">
+  <div class="left" style='width:400px;'>
+    <a href="{% url 'anonymouses:article_create' %}" class='d-inline btn btn-dark d-inline'>NEW</a>
   </div>
-{% endblock content %}
+  <div class="mid text-center black d-flex justify-content-center" style='width:400px;'>
+  {% if previous_page %}
+    <d class="page-item">
+      <a href="?page={{ previous_page }}" class="page-link" area-label="<">
+        <span area-hidden="true">&laquo;</span>
+      </a>
+    </div>
+  {% endif %}
+
+  {% for page in page_range %}
+    {% if page == current_page %}
+    <div class="page-item active">
+      <a href="?page={{page}}" class="page-link">{{page}}</a>
+    </div>
+    {% else %}
+    <div class="page-item">
+      <a href="?page={{page}}" class="page-link">{{page}}</a>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if next_page %}
+  <div class="page-item">
+    <a href="?page={{ next_page }}" class="page-link" area-label=">">
+      <span area-hidden="true">&laquo;</span>
+    </a>
+  </div>
+  {% endif %}
+
+  </div>
+  <div id="none" class="right text-end" style='width:400px;'>
+
+  </div>
+</div>
+{% endblock %}  
+
+{% block script %}
+<style>
+.page-item.active .page-link {
+  background-color: black;
+  border-color: black
+}
+.page-link {
+  color: black;
+}
+</style>
+  
+{% endblock script %}

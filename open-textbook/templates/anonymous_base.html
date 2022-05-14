@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2 class='d-inline fs-2 fw-bold'>{% block subtitle %}{% endblock subtitle %}</h2>
+  <hr>
+  <div class="row my-5">
+    <div class="col-2">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col"><p class="fs-5 fw-bold my-1">검색</p></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <form class="d-flex align-items-center">
+                <input id="searchInput" type="text" style="width:200px;" class="d-inline form-control">   
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col"><p class="fs-5 fw-bold my-1">HOT 게시글</p></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hot in hots %}
+          <tr>
+            <td>{{ hot.title }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col"><p class="fs-5 fw-bold my-1">댓글 많은 게시글</p></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ca in comments_articles %}
+          <tr>
+            <td>{{ ca.title }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="col-8 mx-5">
+      {% block detail %}
+      {% endblock detail %}
+    </div>
+  </div>
+{% endblock content %}
+{% block scripts %}
+  {% block script %}{% endblock script %}
+{% endblock scripts %}
+
+

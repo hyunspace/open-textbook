@@ -1,20 +1,57 @@
 from django.shortcuts import render, redirect, get_list_or_404, get_object_or_404
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from .models import Anonymous, Comment
 from .forms import AnonymousForm, CommentForm
-
+from django.db.models import Count
 
 @require_safe
 def index(request):
     '''
     [GET] 익명 게시판의 글 목록을 보여준다
     '''
-    articles = Anonymous.objects.all().order_by('-pk')
+    anonymouses = Anonymous.objects.get_queryset().order_by('-created_at')
+    hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+    paginator = Paginator(anonymouses, 20)
+    page_number = request.GET.get('page')
+    
+    hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+
+    page_numbers_range = 10
+    max_index = len(paginator.page_range)
+    current_page = int(page_number) if page_number else 1
+    
+    previous_page = 0
+    if current_page > 10:
+        previous_page = ((current_page -1) // page_numbers_range) * page_numbers_range
+    
+    next_page = 0
+    if max_index > 10 and ((current_page -1) // page_numbers_range) * page_numbers_range != ((max_index -1) - 1 // page_number_range):
+        next_page = ((current_page -1) // page_numbers_range + 1) * page_numbers_range
+    
+    start_index = int((current_page - 1)// page_numbers_range) * page_numbers_range
+    end_index = start_index + page_numbers_range
+    if end_index >= max_index:
+        end_index = max_index
+
+    page_range = paginator.page_range[0:20]
+    anonymousList = paginator.get_page(current_page)
+
+    hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+    comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
+    print(comment_articles)
+
     context = {
-        'articles': articles
-    }
+        'page_range': page_range,
+        'anonymouses': anonymousList,
+        'hots': hot_articles,
+        'previous_page': previous_page,
+        'next_page': next_page,
+        'current_page': current_page,
+        'comments_articles': comment_articles,
+    }    
     return render(request, 'anonymouses/index.html', context)
 
 
@@ -50,7 +87,7 @@ def article_detail(request, anonymous_pk):
         comments = Comment.objects.filter(anonymous_id=anonymous_pk)
         comment_form = CommentForm
         context = {
-            'article': article,
+            'anonymous': article,
             'comments': comments,
             'comment_form' : comment_form,
         }
