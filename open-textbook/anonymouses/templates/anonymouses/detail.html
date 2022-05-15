@@ -38,9 +38,9 @@
     <form class = "like-form" data-anonymous-id = "{{ anonymous.pk }}">
       {% csrf_token %}
       {% if user in anonymous.like_users.all %}
-        <button type="submit" id="like-{{ anonymous.pk }}" class="btn border">좋아요 취소 <br><span id="like-count-{{ anonymous.pk }}">{{ anonymous.like_users.all|length }}</span></button>
+        <button type="submit" class="btn border"><i id="like-{{ anonymous.pk }}" class="bi bi-suit-heart-fill" style="color:red"></i><br><span id="like-count-{{ anonymous.pk }}">{{ anonymous.like_users.all|length }}</span></button>
       {% else %}
-        <button type="submit" id="like-{{ anonymous.pk }}" class="btn btn-dark border">좋아요 <br><span id="like-count-{{ anonymous.pk }}">{{ anonymous.like_users.all|length }}</span></button>
+        <button type="submit" class="btn border"><i id="like-{{ anonymous.pk }}" class="bi bi-suit-heart"></i><br><span id="like-count-{{ anonymous.pk }}">{{ anonymous.like_users.all|length }}</span></button>
       {% endif %}
     </form>
   </div>
@@ -66,7 +66,7 @@
               <div class="col-2">글쓴이</div>
             {% else %}
             <div class="row py-2 mx-2 px-2 rounded-3 fs-5">
-              <div class="col-2">익명</div>
+              <div class="col-2">{{ comment.nickname }}</div>
             {% endif %}
               <div class="col-7">{{ comment.content }}</div>
               <div class="col-2">{{ comment.created_string }}</div>
@@ -110,7 +110,17 @@
 
 {% endblock detail %}
 
-
+{% comment %} .then(response => {
+  const like = document.querySelector(`#like-${anonymousId}`)
+  if (response.data.liked) {
+      likeBtn.innerHTML = `좋아요 취소 <br> ${response.data.count}` 
+      likeBtn.classList.remove('btn-dark')
+    } else {
+      likeBtn.innerHTML = `좋아요 <br> ${response.data.count}`
+      likeBtn.classList.add('btn-dark')
+    }  
+  }
+) {% endcomment %}
 
 
 {% block script %}
@@ -128,16 +138,19 @@
       headers: {'X-CSRFToken': csrftoken}
     })
     .then(response => {
-      const likeBtn = document.querySelector(`#like-${anonymousId}`)
+      const likeIcon = document.querySelector(`#like-${anonymousId}`)
+      const likeCount = document.querySelector(`#like-count-${anonymousId}`)
       if (response.data.liked) {
-          likeBtn.innerHTML = `좋아요 취소 <br> ${response.data.count}` 
-          likeBtn.classList.remove('btn-dark')
+          likeIcon.setAttribute('class', 'bi bi-suit-heart-fill')
+          likeIcon.setAttribute('style', 'color:red')
+          likeCount.innerText = `${response.data.count}`
         } else {
-          likeBtn.innerHTML = `좋아요 <br> ${response.data.count}`
-          likeBtn.classList.add('btn-dark')
+          likeIcon.setAttribute('class', 'bi bi-suit-heart')
+          likeCount.innerText = `${response.data.count}`
         }  
+      }
+    )
     
-    })
     .catch(error => {
       console.log(error)
       if (error.response.status === 401) {

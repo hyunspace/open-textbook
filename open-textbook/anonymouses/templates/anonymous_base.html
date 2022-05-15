@@ -14,7 +14,7 @@
         <tbody>
           <tr>
             <td>
-              <form href="" class="d-flex align-items-center">
+              <form action="{% url 'anonymouses:index' %}" class="d-flex align-items-center">
                 <input id="searchInput" name="keyword" type="text" style="width:200px;" class="d-inline form-control">
               </form>
             </td>
@@ -28,10 +28,10 @@
           </tr>
         </thead>
         <tbody>
-          {% for hot in hots %}
+          {% for ha in hot_articles %}
           <tr>
             <td class="sidebar-item">
-              <a href="{% url 'anonymouses:article_detail' hot.pk%}"  class="text-black text-decoration-none">{{ hot.title }}</a>
+              <a href="{% url 'anonymouses:article_detail' ha.pk%}"  class="text-black text-decoration-none">{{ ha.title }}</a>
             </td>
           </tr>
           {% endfor %}

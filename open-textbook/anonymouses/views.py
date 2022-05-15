@@ -3,10 +3,10 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
-from pkg_resources import require
 from .models import Anonymous, Comment
 from .forms import AnonymousForm, CommentForm
-from django.db.models import Count
+from django.db.models import Count, Q
+from datetime import datetime, timedelta, timezone
 
 @require_safe
 def index(request):
@@ -45,14 +45,14 @@ def index(request):
     page_range = paginator.page_range[0:20]
     anonymousList = paginator.get_page(current_page)
 
-    hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
-    comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
-   
+    hot_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(like_cnts = (Count('like_users'))).order_by('-like_cnts')[:5]
+    comment_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(comment_cnts = Count('comment')).order_by('-comment_cnts')[:5]
+
 
     context = {
         'page_range': page_range,
         'anonymouses': anonymousList,
-        'hots': hot_articles,
+        'hot_articles': hot_articles,
         'previous_page': previous_page,
         'next_page': next_page,
         'current_page': current_page,
@@ -68,47 +68,70 @@ def article_create(request):
     [POST] 새 글 등록
     '''
     if request.user.is_authenticated:
-        if request.method == 'GET':
-            article_form = AnonymousForm
-            hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
-            comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
-            context = {
-                'article_form': article_form,
-                'hots': hot_articles,
-                'comments_articles': comment_articles,
-            }
-            return render(request, 'anonymouses/create.html', context)
-        elif request.method == 'POST':
+        if request.method == 'POST':
             article_form = AnonymousForm(request.POST)
             if article_form.is_valid():
                 new_article = article_form.save(commit=False)
                 new_article.user = request.user
                 new_article.save()
-            return redirect('anonymouses:article_detail', new_article.pk)
+                return redirect('anonymouses:article_detail', new_article.pk)
+        else:
+            article_form = AnonymousForm
+
+        hot_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(like_cnts = (Count('like_users'))).order_by('-like_cnts')[:5]
+        comment_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(comment_cnts = Count('comment')).order_by('-comment_cnts')[:5]
+        context = {
+            'article_form': article_form,
+            'hot_articles': hot_articles,
+            'comments_articles': comment_articles,
+        }
+        return render(request, 'anonymouses/create.html', context)    
     return redirect('accounts:signin')
 
-
+@require_safe
 def article_detail(request, anonymous_pk):
+    article = get_object_or_404(Anonymous, pk=anonymous_pk)
+    
+    session_cookie = request.user.pk
+    cookie_name = f'anonymous_view:{session_cookie}'
+    print(request.session.session_key)
+    comments = Comment.objects.filter(anonymous_id=anonymous_pk)
+    comment_form = CommentForm
+    hot_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(like_cnts = (Count('like_users'))).order_by('-like_cnts')[:5]
+    comment_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(comment_cnts = Count('comment')).order_by('-comment_cnts')[:5]
+    context = {
+        'anonymous': article,
+        'comments': comments,
+        'comment_form' : comment_form,
+        'hot_articles': hot_articles,
+        'comments_articles': comment_articles,
+    }
+    response = render(request, 'anonymouses/detail.html', context)
+
+    if request.COOKIES.get(cookie_name) is not None:
+        cookies = request.COOKIES.get(cookie_name)
+        cookies_list = cookies.split('|')
+        if str(anonymous_pk) not in cookies_list:
+            response.set_cookie(cookie_name, cookies+f'|{anonymous_pk}', expires=datetime.now(tz=timezone.utc) + timedelta(minutes=30))
+            article.view_cnt +=1
+            article.save()
+            return response
+    else:
+        response.set_cookie(cookie_name, anonymous_pk, expires=datetime.now(tz=timezone.utc) + timedelta(minutes=30))
+        article.view_cnt += 1
+        article.save()
+        return response
+
+    return render(request, 'anonymouses/detail.html', context)
+
+
     '''
     [GET] 특정 게시글 보여주기
     '''
-    article = get_object_or_404(Anonymous, pk=anonymous_pk)
-    if request.method == 'GET':
-        comments = Comment.objects.filter(anonymous_id=anonymous_pk)
-        comment_form = CommentForm
-        hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
-        comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
-        context = {
-            'anonymous': article,
-            'comments': comments,
-            'comment_form' : comment_form,
-            'hots': hot_articles,
-            'comments_articles': comment_articles,
-        }
-        return render(request, 'anonymouses/detail.html', context)
 
 
-
+@login_required
+@require_http_methods(['GET', 'POST'])
 def article_update(request, anonymous_pk):
     '''
     [GET] 특정 게시글 수정 페이지
@@ -117,22 +140,28 @@ def article_update(request, anonymous_pk):
     user = request.user
     article = get_object_or_404(Anonymous, pk=anonymous_pk)
     if user.pk == article.user_id:
-        if request.method == 'GET':
-            # 수정 페이지로 이동
-            hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
-            comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
-            article_form = AnonymousForm(instance=article)
-            context = {
-                'article_form': article_form,
-                'article': article,
-                'hots': hot_articles,
-                'comments_articles': comment_articles,
-            }
-            return render(request, 'anonymouses/update.html', context)
-        elif request.method == 'PUT':
+        if request.method == 'POST':
             # 수정 반영
-            pass
-    return redirect('anonymouses:index')
+            article_form =  AnonymousForm(request.POST, instance=article)
+            if article_form.is_valid():
+                article = article_form.save()
+                return redirect('anonymouses:article_detail', article.pk)
+        else:
+            # 수정 페이지로 이동
+            article_form = AnonymousForm(instance=article)
+    else:
+        return redirect('anonymouses:index')    
+
+    hot_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(like_cnts = (Count('like_users'))).order_by('-like_cnts')[:5]
+    comment_articles = Anonymous.objects.filter(Q(created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=7))).annotate(comment_cnts = Count('comment')).order_by('-comment_cnts')[:5]
+    context = {
+        'article_form': article_form,
+        'article': article,
+        'hot_articles': hot_articles,
+        'comments_articles': comment_articles,
+    }
+    return render(request, 'anonymouses/update.html', context)
+    
 
 
 @require_POST
@@ -150,14 +179,26 @@ def comment_create(request, anonymous_pk):
     '''
     [POST] 댓글 작성
     '''
-    comment_form = CommentForm(request.POST)
-    if comment_form.is_valid():
-        new_comment = comment_form.save(commit=False)
-        print(new_comment.content)
-        new_comment.user = request.user
-        new_comment.anonymous_id = anonymous_pk
-        new_comment.save()
-    return redirect('anonymouses:article_detail', anonymous_pk)
+    if request.user.is_authenticated:
+        comment_form = CommentForm(request.POST)
+        article = get_object_or_404(Anonymous, pk=anonymous_pk)
+    
+        if comment_form.is_valid():
+            new_comment = comment_form.save(commit=False)
+            new_comment.user = request.user
+            new_comment.anonymous_id = anonymous_pk
+            if article.comment_set.filter(user=request.user).exists():
+                new_comment.nickname = article.comment_set.filter(user=request.user)[0].nickname
+            else:
+                article.comment_idx += 1
+                article.save()
+                index = article.comment_idx
+                new_comment.nickname = '익명'+str(index)
+            new_comment.save()
+        return redirect('anonymouses:article_detail', anonymous_pk)
+    
+    else:
+        return redirect('accounts:signin')
 
 
 # @require_POST
@@ -176,10 +217,10 @@ def comment_delete(request, anonymous_pk, comment_id):
     [POST] 댓글 삭제
     '''
     comment = get_object_or_404(Comment, pk=comment_id)
-    print(comment.user)
     if request.user == comment.user:
         comment.delete()
-    print(1)
+    else:
+        HttpResponse(status = 401)
     return redirect('anonymouses:article_detail', anonymous_pk)
 
 
