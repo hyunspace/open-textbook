@@ -18,11 +18,13 @@
         <td>
           <div class='d-flex justify-content-end align-items-center'>
             <span>{{ anonymous.created_string }}</span>
-            <a href="" class="btn text-decoration-underline">수정</a>
+            {% if request.user == anonymous.user %}
+            <a href="{% url 'anonymouses:article_update' anonymous.pk %}" class="btn text-decoration-underline">수정</a>
             <form action="{% url 'anonymouses:article_delete' anonymous.pk %}" method="POST" class="d-inline">
               {% csrf_token %}
               <button class="btn text-decoration-underline">삭제</button>
             </form>
+            {% endif %}
           </div>
           <div>
             <br><br><br><br>
@@ -77,19 +79,20 @@
                 {% endif %}
               </div>  
             </div>
-            
-            </td>
-          </tr>
-          {% empty %}
-            <tr><td>
-              <div class="row py-2 mx-2 px-2 rounded-3 fs-5 bg-secondary bg-opacity-10">아직 댓글이 없어요</div>
-            </td></tr>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td>
+            <div class="row py-2 mx-2 px-2 rounded-3 fs-5 bg-secondary bg-opacity-10">아직 댓글이 없어요</div>
+          </td>
+        </tr>
         {% endfor %}
-        <tr class='px-3'>
+        <tr>
           <td id='create_comment'>
-            <form action="{% url 'anonymouses:comment_create' anonymous.pk %}" method="POST" class='row like-form'>
+            <form action="{% url 'anonymouses:comment_create' anonymous.pk %}" method="POST" class='row like-form mx-2'>
               {% csrf_token %}
-              <div class="col-11">
+              <div class="col-11 px-0">
                 {{ comment_form.content }}
               </div>
               <div class="col-1">       

@@ -14,8 +14,8 @@
         <tbody>
           <tr>
             <td>
-              <form class="d-flex align-items-center">
-                <input id="searchInput" type="text" style="width:200px;" class="d-inline form-control">   
+              <form href="" class="d-flex align-items-center">
+                <input id="searchInput" name="keyword" type="text" style="width:200px;" class="d-inline form-control">
               </form>
             </td>
           </tr>
@@ -30,7 +30,9 @@
         <tbody>
           {% for hot in hots %}
           <tr>
-            <td>{{ hot.title }}</td>
+            <td class="sidebar-item">
+              <a href="{% url 'anonymouses:article_detail' hot.pk%}"  class="text-black text-decoration-none">{{ hot.title }}</a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -44,7 +46,9 @@
         <tbody>
           {% for ca in comments_articles %}
           <tr>
-            <td>{{ ca.title }}</td>
+            <td class="sidebar-item">
+              <a href="{% url 'anonymouses:article_detail' ca.pk%}"  class="text-black text-decoration-none">{{ ca.title }}</a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -57,7 +61,13 @@
   </div>
 {% endblock content %}
 {% block scripts %}
-  {% block script %}{% endblock script %}
+  <style>
+    .sidebar-item:hover {
+      background-color:#eee;
+    }
+  </style>
+  {% block script %}
+  {% endblock script %}
 {% endblock scripts %}
 
 

@@ -22,7 +22,7 @@
         <td>
           <a href="{% url 'anonymouses:article_detail' anonymous.pk%}" class="text-decoration-none text-black">
             {{ anonymous.title }} 
-            {% if anonymous.comment_set %}
+            {% if anonymous.comment_set.all|length %}
             <span style='font-size:12px;'>[{{ anonymous.comment_set.all|length }}]</span>
             {% endif %} 
           </a>

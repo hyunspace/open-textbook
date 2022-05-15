@@ -3,6 +3,7 @@ from django.views.decorators.http import require_http_methods, require_POST, req
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
+from pkg_resources import require
 from .models import Anonymous, Comment
 from .forms import AnonymousForm, CommentForm
 from django.db.models import Count
@@ -12,7 +13,12 @@ def index(request):
     '''
     [GET] 익명 게시판의 글 목록을 보여준다
     '''
-    anonymouses = Anonymous.objects.get_queryset().order_by('-created_at')
+    keyword = request.GET.get('keyword')
+    if keyword:
+        anonymouses = Anonymous.objects.filter(title__contains=keyword).order_by('-created_at')
+    else:
+        anonymouses = Anonymous.objects.get_queryset().order_by('-created_at')
+
     hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
     paginator = Paginator(anonymouses, 20)
     page_number = request.GET.get('page')
@@ -41,7 +47,7 @@ def index(request):
 
     hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
     comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
-    print(comment_articles)
+   
 
     context = {
         'page_range': page_range,
@@ -64,8 +70,12 @@ def article_create(request):
     if request.user.is_authenticated:
         if request.method == 'GET':
             article_form = AnonymousForm
+            hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+            comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
             context = {
-                'article_form': article_form
+                'article_form': article_form,
+                'hots': hot_articles,
+                'comments_articles': comment_articles,
             }
             return render(request, 'anonymouses/create.html', context)
         elif request.method == 'POST':
@@ -86,10 +96,14 @@ def article_detail(request, anonymous_pk):
     if request.method == 'GET':
         comments = Comment.objects.filter(anonymous_id=anonymous_pk)
         comment_form = CommentForm
+        hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+        comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
         context = {
             'anonymous': article,
             'comments': comments,
             'comment_form' : comment_form,
+            'hots': hot_articles,
+            'comments_articles': comment_articles,
         }
         return render(request, 'anonymouses/detail.html', context)
 
@@ -105,12 +119,16 @@ def article_update(request, anonymous_pk):
     if user.pk == article.user_id:
         if request.method == 'GET':
             # 수정 페이지로 이동
-                article_form = AnonymousForm(instance=article)
-                context = {
-                    'article_form': article_form,
-                    'article': article,
-                }
-                return render(request, 'anonymouses/update.html', context)
+            hot_articles = Anonymous.objects.all().order_by('-like_users')[:5]
+            comment_articles = Anonymous.objects.annotate(comment_numbers = Count('comment')).order_by('-comment_numbers')[:5]
+            article_form = AnonymousForm(instance=article)
+            context = {
+                'article_form': article_form,
+                'article': article,
+                'hots': hot_articles,
+                'comments_articles': comment_articles,
+            }
+            return render(request, 'anonymouses/update.html', context)
         elif request.method == 'PUT':
             # 수정 반영
             pass
@@ -122,7 +140,8 @@ def article_delete(request, anonymous_pk):
     article = Anonymous.objects.get(pk=anonymous_pk)
     if request.user == article.user:
         article.delete()
-        return render(request, 'anonymouses/index.html')
+        return redirect('anonymouses:index')
+
     return redirect('anonymouses:article_detail', anonymous_pk)
 
 
@@ -141,14 +160,14 @@ def comment_create(request, anonymous_pk):
     return redirect('anonymouses:article_detail', anonymous_pk)
 
 
-@require_POST
-def comment_update(request, anonymous_pk, comment_id):
-    '''
-    [GET] 댓글 수정 버튼
-    '''
-    comment = get_object_or_404(Comment, pk=comment_id)
-    pass
-    # 비동기로 처리하면 페이지 이동 없이 수정 가능한데... 어떻게 하면 좋을지 생각할 것
+# @require_POST
+# def comment_update(request, anonymous_pk, comment_id):
+#     '''
+#     [GET] 댓글 수정 버튼
+#     '''
+#     comment = get_object_or_404(Comment, pk=comment_id)
+#     pass
+#     # 비동기로 처리하면 페이지 이동 없이 수정 가능한데... 어떻게 하면 좋을지 생각할 것
 
 
 @require_POST
@@ -157,8 +176,10 @@ def comment_delete(request, anonymous_pk, comment_id):
     [POST] 댓글 삭제
     '''
     comment = get_object_or_404(Comment, pk=comment_id)
+    print(comment.user)
     if request.user == comment.user:
         comment.delete()
+    print(1)
     return redirect('anonymouses:article_detail', anonymous_pk)
 
 
